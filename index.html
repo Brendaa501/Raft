@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Raft Dashboard</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #500303;
+    color: white;
+    margin: 0;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 900px;
+    margin: auto;
+  }
+
+  .card {
+    background: #c72a0e;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  }
+
+  .nodes {
+    display: flex;
+    gap: 15px;
+    justify-content: space-between;
+  }
+
+  .node {
+    flex: 1;
+    padding: 15px;
+    border-radius: 10px;
+    background: #aa9a0c;
+  }
+
+  .leader {
+    border: 2px solid #22c55e;
+    background: #14532d;
+  }
+
+  button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  .btn-primary {
+    background: #3b82f6;
+    color: white;
+  }
+
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+  }
+
+  input {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    margin-right: 10px;
+  }
+
+  .log {
+    font-size: 14px;
+    background: black;
+    padding: 10px;
+    border-radius: 8px;
+    height: 120px;
+    overflow-y: auto;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>💰 Raft - Sistema de Consenso</h1>
+
+<div class="container">
+
+  <!-- CONTROLE -->
+  <div class="card">
+    <h3>Nova Transação</h3>
+    <input type="number" id="valor" placeholder="Digite o valor">
+    <button class="btn-primary" onclick="enviar()">Enviar</button>
+    <button class="btn-danger" onclick="falha()">Derrubar Líder</button>
+  </div>
+
+  <!-- NÓS -->
+  <div class="card">
+    <h3>Nós do Sistema</h3>
+    <div class="nodes" id="nodes"></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="card">
+    <h3>Logs do Sistema</h3>
+    <div class="log" id="log"></div>
+  </div>
+
+</div>
+
+<script>
+function log(msg) {
+  const logDiv = document.getElementById("log");
+  logDiv.innerHTML += msg + "<br>";
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+async function atualizar() {
+  const res = await fetch('http://localhost:3000/status');
+  const data = await res.json();
+
+  const nodesDiv = document.getElementById("nodes");
+  nodesDiv.innerHTML = "";
+
+  for (let node in data.nodes) {
+    const div = document.createElement("div");
+    div.className = "node";
+
+    if (node === data.leader) {
+      div.classList.add("leader");
+    }
+
+    div.innerHTML = `
+      <strong>${node.toUpperCase()}</strong>
+      ${node === data.leader ? "<br>👑 Líder" : ""}
+      <br><br>
+      Transações:
+      <br>${data.nodes[node].join(", ") || "Nenhuma"}
+    `;
+
+    nodesDiv.appendChild(div);
+  }
+}
+
+async function enviar() {
+  const valor = document.getElementById("valor").value;
+
+  if (!valor) return;
+
+  await fetch('http://localhost:3000/transacao', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ valor })
+  });
+
+  log("💸 Transação enviada: " + valor);
+  atualizar();
+}
+
+async function falha() {
+  await fetch('http://localhost:3000/falha', {
+    method: 'POST'
+  });
+
+  log("⚠️ Falha no líder! Novo líder eleito.");
+  atualizar();
+}
+
+atualizar();
+</script>
+
+</body>
+</html>
