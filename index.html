@@ -1,23 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+
+<!-- Define codificação de caracteres -->
 <meta charset="UTF-8">
+
+<!-- Título da aba do navegador -->
 <title>Raft Dashboard</title>
 
 <style>
+
+  /* Estilo geral da página */
   body {
     font-family: Arial, sans-serif;
-    background: #500303;
+    background: #500303; /* fundo vermelho escuro */
     color: white;
     margin: 0;
     padding: 20px;
   }
 
+  /* Título principal */
   h1 {
     text-align: center;
     margin-bottom: 30px;
   }
 
+  /* Container principal */
   .container {
     display: flex;
     flex-direction: column;
@@ -26,6 +34,7 @@
     margin: auto;
   }
 
+  /* Cards (caixas do sistema) */
   .card {
     background: #c72a0e;
     padding: 20px;
@@ -33,12 +42,14 @@
     box-shadow: 0 0 10px rgba(0,0,0,0.4);
   }
 
+  /* Área onde ficam os nós */
   .nodes {
     display: flex;
     gap: 15px;
     justify-content: space-between;
   }
 
+  /* Cada nó */
   .node {
     flex: 1;
     padding: 15px;
@@ -46,11 +57,13 @@
     background: #aa9a0c;
   }
 
+  /* Destaque visual do líder */
   .leader {
-    border: 2px solid #22c55e;
-    background: #14532d;
+    border: 2px solid #22c55e; /* borda verde */
+    background: #14532d; /* fundo diferente */
   }
 
+  /* Botões */
   button {
     padding: 10px 15px;
     border: none;
@@ -59,16 +72,19 @@
     margin-top: 10px;
   }
 
+  /* Botão principal */
   .btn-primary {
     background: #3b82f6;
     color: white;
   }
 
+  /* Botão de perigo (falha) */
   .btn-danger {
     background: #ef4444;
     color: white;
   }
 
+  /* Campo de input */
   input {
     padding: 10px;
     border-radius: 8px;
@@ -76,6 +92,7 @@
     margin-right: 10px;
   }
 
+  /* Área de logs */
   .log {
     font-size: 14px;
     background: black;
@@ -84,59 +101,89 @@
     height: 120px;
     overflow-y: auto;
   }
+
 </style>
 </head>
 
 <body>
 
+<!-- Título da aplicação -->
 <h1>💰 Raft - Sistema de Consenso</h1>
 
 <div class="container">
 
-  <!-- CONTROLE -->
+  <!-- 🧾 CONTROLE DE TRANSAÇÃO -->
   <div class="card">
     <h3>Nova Transação</h3>
+
+    <!-- Campo para digitar valor -->
     <input type="number" id="valor" placeholder="Digite o valor">
+
+    <!-- Botão que envia transação -->
     <button class="btn-primary" onclick="enviar()">Enviar</button>
+
+    <!-- Botão que simula falha do líder -->
     <button class="btn-danger" onclick="falha()">Derrubar Líder</button>
   </div>
 
-  <!-- NÓS -->
+  <!-- 🧠 VISUALIZAÇÃO DOS NÓS -->
   <div class="card">
     <h3>Nós do Sistema</h3>
+
+    <!-- Aqui os nós são desenhados dinamicamente -->
     <div class="nodes" id="nodes"></div>
   </div>
 
-  <!-- LOG -->
+  <!-- 📊 LOGS -->
   <div class="card">
     <h3>Logs do Sistema</h3>
+
+    <!-- Exibe eventos do sistema -->
     <div class="log" id="log"></div>
   </div>
 
 </div>
 
 <script>
+
+// 📊 FUNÇÃO PARA ADICIONAR LOGS NA TELA
 function log(msg) {
   const logDiv = document.getElementById("log");
+
+  // Adiciona mensagem no log
   logDiv.innerHTML += msg + "<br>";
+
+  // Faz rolar automaticamente para baixo
   logDiv.scrollTop = logDiv.scrollHeight;
 }
 
+
+// 🔄 ATUALIZA O ESTADO DOS NÓS
 async function atualizar() {
+
+  // Busca dados do servidor
   const res = await fetch('http://localhost:3000/status');
   const data = await res.json();
 
   const nodesDiv = document.getElementById("nodes");
+
+  // Limpa antes de redesenhar
   nodesDiv.innerHTML = "";
 
+  // Percorre todos os nós
   for (let node in data.nodes) {
+
     const div = document.createElement("div");
+
+    // Classe base
     div.className = "node";
 
+    // Se for líder → adiciona destaque
     if (node === data.leader) {
       div.classList.add("leader");
     }
 
+    // Conteúdo do nó
     div.innerHTML = `
       <strong>${node.toUpperCase()}</strong>
       ${node === data.leader ? "<br>👑 Líder" : ""}
@@ -149,31 +196,48 @@ async function atualizar() {
   }
 }
 
+
+// 💰 ENVIA TRANSAÇÃO
 async function enviar() {
+
   const valor = document.getElementById("valor").value;
 
+  // Se não digitou nada → não faz nada
   if (!valor) return;
 
+  // Envia para o backend
   await fetch('http://localhost:3000/transacao', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ valor })
   });
 
+  // Log visual
   log("💸 Transação enviada: " + valor);
+
+  // Atualiza tela
   atualizar();
 }
 
+
+// ⚠️ SIMULA FALHA DO LÍDER
 async function falha() {
+
   await fetch('http://localhost:3000/falha', {
     method: 'POST'
   });
 
+  // Mostra no log
   log("⚠️ Falha no líder! Novo líder eleito.");
+
+  // Atualiza interface
   atualizar();
 }
 
+
+// 🔄 Atualiza automaticamente ao abrir
 atualizar();
+
 </script>
 
 </body>
